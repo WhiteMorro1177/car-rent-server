@@ -12,7 +12,7 @@ services:
       - db
 
   db:
-    image: postgres
+    build: /db-conf
     environment:
       - POSTGRES_PASSWORD=P0stgrePass
       - POSTGRES_DB=rentdb
