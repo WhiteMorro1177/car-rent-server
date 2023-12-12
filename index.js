@@ -21,7 +21,7 @@ app.get("/login/:username&:password", async (req, res) => {
     const inputUsername = req.params.username;
     const inputPassword = req.params.password;
 
-    const user_role = await client.query("select role from users where username = $1", [inputUsername]);
+    const user_role = await client.query(`call check_auth(${inputUsername})`);
 
     console,log(user_role);
     if (user_role === undefined) {
