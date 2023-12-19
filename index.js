@@ -35,10 +35,9 @@ app.get("/login/:username&:password", async (req, res) => {
 app.post("/auth/:username&:password&:role", async (req, res) => {
     const username = req.params.username;
     const password = req.params.password;
-    const role = req.params.role;
 
-    await client.query("call add_user($1, $2, $3)", [username, password, role]);
-    res.status(200).send(role);
+    await client.query("call add_user($1, $2)", [username, password]);
+    res.status(200).send(username);
 });
 
 
@@ -48,8 +47,9 @@ app.post("/auth/:username&:password&:role", async (req, res) => {
 app.get("/cars/:username", async (req, res) => {
     const username = req.params.username;
     await client.query("set role $1", [username]);
+
     const queryResult = await client.query("select * from get_cars()");
-    console.log(queryResult);
+    console.log(queryResult); // !!! parse the result !!!
     res.status(200).send("ok");
 });
 
@@ -59,7 +59,7 @@ app.get("/parkings", async (req, res) => {
 });
 
 // create contract
-app.post("/contract/:users/:vin&:duration", async (req, res) => {
+app.post("/contract/:username/:vin&:duration", async (req, res) => {
     const username = req.params.username;
     await client.query("set role $1", [username]);
 
@@ -68,8 +68,20 @@ app.post("/contract/:users/:vin&:duration", async (req, res) => {
     const rentalDuration = req.params.duration;
 
     const queryResult = await client.query("select prepare_contract($1, $2, $3)", [username, vinNumber, rentalDuration]);
-    console.log(queryResult);
+    console.log(queryResult); // !!! parse the result !!!
     res.status(200).send("ok");
+});
+
+// report about car accident
+app.post("/accident/:username&:vin", async (req, res) => {
+    const username = req.params.username;
+    await client.query("set role $1", [username]);
+
+    const vin = req.params.vin;
+    const queryResult = await client.query("select add_accident($1, $2)", [username, vin]);
+    console.log(queryResult); // !!! parse the result !!!
+
+    res.status(200).send("Accident reported");
 });
 
 
@@ -81,10 +93,12 @@ app.post("/contract/:id", async (req, res) => {
     res.status(200).send("ok")
 });
 
-// 
+// confirm car accident
+app.post("/accident/:id", async (req, res) => {
 
 
-// admin controller
+    res.status(200).send("Accident confirmed");
+});
 
 
 
