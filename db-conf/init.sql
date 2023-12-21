@@ -25,6 +25,8 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE accidents
 (
 	ID_accident int NOT NULL UNIQUE,
+	is_confirmed boolean NOT NULL,
+	driving_license varchar(10) NOT NULL,
 	vin_number varchar(100) NOT NULL UNIQUE,
 	PRIMARY KEY (ID_accident)
 ) WITHOUT OIDS;
@@ -59,8 +61,9 @@ CREATE TABLE cars
 	car_brand varchar(40) NOT NULL,
 	car_color varchar(20) NOT NULL,
 	car_class varchar(20) NOT NULL,
-	transmission_type varchar(20) NOT NULL,
+	transmission_type varchar(4) NOT NULL,
 	fuel_type varchar(20) NOT NULL,
+	locked boolean DEFAULT 'FALSE' NOT NULL,
 	ID_parking int NOT NULL,
 	PRIMARY KEY (vin_number)
 ) WITHOUT OIDS;
@@ -69,11 +72,8 @@ CREATE TABLE cars
 CREATE TABLE clients
 (
 	driving_license varchar(10) NOT NULL,
-	-- Фамилия Имя Отчество клиента
 	name varchar(100) NOT NULL,
-	-- Потребуется для быстрой связи с клиентом. Тип данных - могло быть и число, но для простоты учебного примера - пусть будет строка
 	phone varchar(20) UNIQUE,
-	-- Электронный адрес
 	email varchar(50) UNIQUE,
 	date_of_birth date,
 	registration_address varchar,
@@ -126,7 +126,7 @@ CREATE TABLE raw_contracts
 CREATE TABLE users
 (
 	username varchar(20) NOT NULL UNIQUE,
-	role varchar(20) NOT NULL,
+	password varchar(30) NOT NULL,
 	PRIMARY KEY (username)
 ) WITHOUT OIDS;
 
@@ -137,36 +137,56 @@ CREATE TABLE users
 ALTER TABLE accidents
 	ADD FOREIGN KEY (vin_number)
 	REFERENCES cars (vin_number)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
+;
+
+
+ALTER TABLE accidents
+	ADD FOREIGN KEY (driving_license)
+	REFERENCES clients (driving_license)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
 
 
 ALTER TABLE raw_contracts
 	ADD FOREIGN KEY (vin_number)
 	REFERENCES cars (vin_number)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
 
 
 ALTER TABLE raw_contracts
 	ADD FOREIGN KEY (driving_license)
 	REFERENCES clients (driving_license)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
 
 
 ALTER TABLE manager_on_contract
 	ADD FOREIGN KEY (manager_passport_details)
 	REFERENCES managers (manager_passport_details)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
 
 
 ALTER TABLE cars
 	ADD FOREIGN KEY (ID_parking)
 	REFERENCES parkings (ID_parking)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
 
 
 ALTER TABLE managers
 	ADD FOREIGN KEY (ID_parking)
 	REFERENCES parkings (ID_parking)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
 
 
@@ -181,14 +201,17 @@ ALTER TABLE manager_on_contract
 ALTER TABLE clients
 	ADD FOREIGN KEY (username)
 	REFERENCES users (username)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
 
 
 ALTER TABLE managers
 	ADD FOREIGN KEY (username)
 	REFERENCES users (username)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION
 ;
-
 
 
 /* Comments */
