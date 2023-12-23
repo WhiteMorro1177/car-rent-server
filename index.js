@@ -15,13 +15,18 @@ const errorMessage = "Error in request";
 
 import express from "express";
 const app = express();
+app.use(express.json());
 
 
 // login controller
-app.get("/login/:username&:password", async (req, res) => {
+
+// check authentification for client and manager
+app.post("/login", async (req, res) => {
     try {
-        const username = req.params.username;
-        const password = req.params.password;
+
+        console.log("Request body:", req.body);
+        const username = req.body.username;
+        const password = req.body.password;
         
         const queryResult = await client.query("select check_auth($1, $2)", [username, password]);
         const user_role = queryResult.rows[0].check_auth;
@@ -37,10 +42,15 @@ app.get("/login/:username&:password", async (req, res) => {
     }
 });
 
-app.post("/auth/:username&:password", async (req, res) => {
+
+// create new client
+app.post("/auth", async (req, res) => {
     try {
-        const username = req.params.username;
-        const password = req.params.password;
+        await client.query("set role postgres");
+
+        console.log("Request body:", req.body);
+        const username = req.body.username;
+        const password = req.body.password;
         
         await client.query("call add_user($1, $2)", [username, password]);
         res.status(200).send(username);
@@ -72,16 +82,16 @@ app.get("/parkings", async (req, res) => {
 });
 
 // create contract
-app.post("/contract/:username/:vin&:duration", async (req, res) => {
+app.post("/contract", async (req, res) => {
     try {
-        const username = req.params.username;
+        console.log("Request body:", req.body);
+        const username = req.body.username;
         await client.query(`set role ${username}`);
+        
+        const vinNumber = req.body.vin;
+        const rentalDuration = req.body.duration;
 
-        // const drivingLisence = req.params.lisenceId;
-        const vinNumber = req.params.vin;
-        const rentalDuration = req.params.duration;
-
-        const queryResult = await client.query("select prepare_contract($1, $2, $3)", [username, vinNumber, rentalDuration]);
+        const queryResult = await client.query(`select prepare_contract($1, $2, $3)`, [username, vinNumber, rentalDuration]);
         console.log(queryResult); // !!! parse the result !!!
         res.status(200).send("ok");
     } catch (exc) {
@@ -90,11 +100,13 @@ app.post("/contract/:username/:vin&:duration", async (req, res) => {
 });
 
 // report about car accident
-app.post("/accident/:username&:vin", async (req, res) => {
-    const username = req.params.username;
+app.post("/accident", async (req, res) => {
+    console.log("Request body:", req.body);
+
+    const username = req.body.username;
     await client.query(`set role ${username}`);
 
-    const vin = req.params.vin;
+    const vin = req.body.vin;
     const queryResult = await client.query("select add_accident($1, $2)", [username, vin]);
     console.log(queryResult); // !!! parse the result !!!
 
@@ -106,15 +118,21 @@ app.post("/accident/:username&:vin", async (req, res) => {
 // manager controller
 
 // sign contract
-app.post("/contract/:id", async (req, res) => {
-    res.status(200).send("ok")
+app.post("/contract", async (req, res) => {
+    console.log("Request body:", req.body);
+    const id = req.body.id;
+
+
+
+    res.status(200).send("ok");
 });
 
 // confirm car accident
-app.post("/accident/:id", async (req, res) => {
+app.post("/accident", async (req, res) => {
+    console.log("Request body:", req.body);
+    const id = req.body.id;
 
-
-    res.status(200).send("Accident confirmed");
+    res.status(200).send("ok");
 });
 
 
