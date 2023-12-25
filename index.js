@@ -23,6 +23,7 @@ app.use(express.json());
 // check authentification for client and manager
 app.post("/login", async (req, res) => {
     try {
+        await client.query("set role postgres");
 
         console.log("Request body:", req.body);
         const username = req.body.username;
@@ -66,10 +67,11 @@ app.post("/auth", async (req, res) => {
 app.get("/cars/:username", async (req, res) => {
     try {
         const username = req.params.username;
+        console.log(username);
         await client.query(`set role ${username}`);
         
         const queryResult = await client.query("select * from get_cars()");
-        console.log(queryResult); // !!! parse the result !!!
+        console.log(queryResult);
         res.status(200).send(queryResult.rows);
     } catch (exc) {
         res.status(404).send(errorMessage);
@@ -77,9 +79,42 @@ app.get("/cars/:username", async (req, res) => {
 });
 
 // get parkings list
-app.get("/parkings", async (req, res) => {
-    res.status(200).send("ok");
+app.get("/parkings/:username", async (req, res) => {
+    try {
+        const username = req.params.username;
+        await client.query(`set role ${username}`);
+        
+        const queryResult = await client.query("select * from get_parkings()");
+        console.log(queryResult);
+        res.status(200).send(queryResult.rows);
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
 });
+
+// create account
+app.post("/account", async (req, res) => {
+    try {
+        console.log("Request body:", req.body);
+
+        const drivingLicense = req.body.drivingLicense;
+        const name = req.body.name;
+        const phone = req.body.phone;
+        const email = req.body.email;
+        const date = req.body.date;
+        const regAddress = req.body.regAddress;
+        const resAddress = req.body.resAddress;
+        
+        const username = req.body.username;
+        await client.query(`set role ${username}`);
+
+        const queryResult = await client.query("insert into clients (driving_license, name, phone, email, date_of_birth, registration_address, residence_address, username) values ($1, $2, $3, $4, $5, $6, $7, $8)", [drivingLicense, name, phone, email, date, regAddress, resAddress, username]);
+        
+        res.status(200).send("Account created");
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
+})
 
 // create contract
 app.post("/contract", async (req, res) => {
@@ -91,9 +126,10 @@ app.post("/contract", async (req, res) => {
         const vinNumber = req.body.vin;
         const rentalDuration = req.body.duration;
 
-        const queryResult = await client.query(`select prepare_contract($1, $2, $3)`, [username, vinNumber, rentalDuration]);
-        console.log(queryResult); // !!! parse the result !!!
-        res.status(200).send("ok");
+        const queryResult = await client.query(`select add_contract($1, $2, $3)`, [username, vinNumber, rentalDuration]);
+        const contractId = queryResult.rows[0].add_contract;
+        console.log(queryResult.rows);
+        res.status(200).send(contractId);
     } catch (exc) {
         res.status(404).send(errorMessage);
     }
@@ -108,31 +144,112 @@ app.post("/accident", async (req, res) => {
 
     const vin = req.body.vin;
     const queryResult = await client.query("select add_accident($1, $2)", [username, vin]);
-    console.log(queryResult); // !!! parse the result !!!
 
-    res.status(200).send("Accident reported");
+    const accidentId = queryResult.rows[0].add_accident;
+    console.log(queryResult.rows);
+    res.status(200).send(accidentId);
 });
 
 
 
 // manager controller
 
-// sign contract
-app.post("/contract", async (req, res) => {
-    console.log("Request body:", req.body);
-    const id = req.body.id;
+//get raw contracts
+app.get("/contracts/:username", async (req, res) => {
+    try {
+        const username = req.params.username;
+        console.log("Manager username:", username);
+        await client.query(`set role ${username}`);
+
+        const queryResult = await client.query("select * from get_raw_contracts()");
+        console.log(queryResult.rows);
+        res.status(200).send(queryResult.rows);
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
+});
+
+// get raw accidents
+app.get("/accidents/:username", async (req, res) => {
+    try {
+        const username = req.params.username;
+        console.log("Manager username:", username);
+        await client.query(`set role ${username}`);
+
+        const queryResult = await client.query("select * from get_raw_accidents()");
+        console.log(queryResult.rows);
+        res.status(200).send(queryResult.rows);
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
+});
+
+// get returnable cars
+app.get("/return/:username", async (req, res) => {
+    try {
+        const username = req.params.username;
+        console.log("Manager username:", username);
+        await client.query(`set role ${username}`);
+
+        const queryResult = await client.query("select * from get_return()");
+        console.log(queryResult.rows);
+        res.status(200).send(queryResult.rows);
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
+});
 
 
+// submit contract
+app.post("/contracts", async (req, res) => {
+    try {
+        console.log("Request body:", req.body);
 
-    res.status(200).send("ok");
+        const username = req.body.username;
+        await client.query(`set role ${username}`);
+
+        const id = req.body.id;
+        const queryResult = await client.query("call confirm_contract($1)", [id]);
+
+        console.log(queryResult);
+        
+        res.status(200).send("Contract confirmed");
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
 });
 
 // confirm car accident
-app.post("/accident", async (req, res) => {
-    console.log("Request body:", req.body);
-    const id = req.body.id;
+app.post("/accidents", async (req, res) => {
+    try {
+        console.log("Request body:", req.body);
+        const username = req.body.username;
+        await client.query(`set role ${username}`);
 
-    res.status(200).send("ok");
+        const id = req.body.id;
+        const queryResult = await client.query("call confirm_accident($1)", [id]);
+        
+        res.status(200).send("Accident confirmed");
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
+});
+
+// return car on parking
+app.post("/return", async (req, res) => {
+    try {
+        console.log("Request body:", req.body);
+        const username = req.body.username;
+        await client.query(`set role ${username}`);
+
+        const id = req.body.id;
+        const vinNumber = req.body.vin;
+        const queryResult = await client.query("call return_car($1, $2)", [id, vinNumber]);
+        
+        res.status(200).send("Car registered");
+    } catch (exc) {
+        res.status(404).send(errorMessage);
+    }
 });
 
 
